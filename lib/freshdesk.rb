@@ -26,12 +26,18 @@ class Freshdesk
 
     define_method method_name do |*args| 
       uri = mapping(name)
-      uri.gsub!(/.xml/, "/#{args}.xml") if args.size > 0
+      uri.gsub!(/.xml/, "/#{args[0]}.xml") if args.size > 0
 
       begin
         response = RestClient.get uri
+        doc = Nokogiri::XML.parse(response)
+
+        doc.xpath('//user').map do |i|
+          {:name =>  i.xpath('name').inner_text,:id =>  i.xpath('id').inner_text, :email => i.xpath('email').inner_text}
+        end
+      
       rescue Exception
-        response = nil
+        nil
       end
     end
   end
@@ -72,6 +78,8 @@ class Freshdesk
 
       begin 
         response = RestClient.post uri, builder.to_xml, :content_type => "text/xml"
+        doc = Nokogiri::XML.parse(response)
+        {:name =>  doc.xpath('//name').inner_text,:id =>  doc.xpath('//id').inner_text, :email => doc.xpath('//email').inner_text}
         
       rescue RestClient::UnprocessableEntity
         raise AlreadyExistedError, "Entry already existed"
@@ -85,8 +93,7 @@ class Freshdesk
       rescue Exception => e3
         raise
       end   
-      
-      response   
+       
     end
   end
 
