@@ -29,11 +29,13 @@ class Freshdesk
       uri.gsub!(/.xml/, "/#{args[0]}.xml") if args.size > 0
 
       begin
+        puts uri
         response = RestClient.get uri
+        puts response
         doc = Nokogiri::XML.parse(response)
 
-        doc.xpath('//user').map do |i|
-          {:name =>  i.xpath('name').inner_text,:id =>  i.xpath('id').inner_text, :email => i.xpath('email').inner_text}
+        doc.xpath('//'+doc_name(name)).map do |i|
+          Hash.from_xml(i.to_s)[doc_name(name)]
         end
       
       rescue Exception
@@ -67,7 +69,6 @@ class Freshdesk
     define_method method_name do |args|
       raise StandardError, "Arguments are required to modify data" if args.size.eql? 0
       uri = mapping(name)
-      
       builder = Nokogiri::XML::Builder.new do |xml|
         xml.send(doc_name(name)) {
           args.each do |key, value|
@@ -77,10 +78,12 @@ class Freshdesk
       end
 
       begin 
+        puts uri
         response = RestClient.post uri, builder.to_xml, :content_type => "text/xml"
+        puts response
         doc = Nokogiri::XML.parse(response)
-        {:name =>  doc.xpath('//name').inner_text,:id =>  doc.xpath('//id').inner_text, :email => doc.xpath('//email').inner_text}
-        
+        Hash.from_xml(i.to_s)[doc_name(name)]
+
       rescue RestClient::UnprocessableEntity
         raise AlreadyExistedError, "Entry already existed"
       
@@ -120,7 +123,9 @@ class Freshdesk
 
       begin 
         uri.gsub!(/.xml/, "/#{args[:id]}.xml")
+        puts uri
         response = RestClient.put uri, builder.to_xml, :content_type => "text/xml"
+        puts response
         
       rescue RestClient::InternalServerError
         raise ConnectionError, "Connection to the server failed. Please check hostname"
@@ -153,12 +158,12 @@ class Freshdesk
   #   companies => /customers.xml
   def mapping(method_name)
     path = case method_name
-      when "tickets" then File.join(@base_url + "helpdesk/tickets.xml")
+      when "tickets" then File.join(@base_url, "helpdesk/tickets.xml")
       when "ticket_fields" then File.join( @base_url, "ticket_fields.xml")
       when "users" then File.join(@base_url, "contacts.xml")
-      when "forums" then File.join(@base_url + "categories.xml")
-      when "solutions" then File.join(@base_url + "solution/categories.xml")
-      when "companies" then File.join(@base_url + "customers.xml")
+      when "forums" then File.join(@base_url, "categories.xml")
+      when "solutions" then File.join(@base_url, "solution/categories.xml")
+      when "companies" then File.join(@base_url, "customers.xml")
     end
   end
   
