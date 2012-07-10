@@ -82,7 +82,7 @@ class Freshdesk
         response = RestClient.post uri, builder.to_xml, :content_type => "text/xml"
         puts response
         doc = Nokogiri::XML.parse(response)
-        Hash.from_xml(i.to_s)[doc_name(name)]
+        Hash.from_xml(response)[doc_name(name)]
 
       rescue RestClient::UnprocessableEntity
         raise AlreadyExistedError, "Entry already existed"
