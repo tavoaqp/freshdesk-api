@@ -25,15 +25,16 @@ class Freshdesk
     method_name = "get_" + name
 
     define_method method_name do |*args| 
+      args = args[0] if args.class==Array
       uri = mapping(name)
-      uri.gsub!(/.xml/, "/#{args[0]}.xml") if args.size > 0
-
+      uri.gsub!(/.xml/, "/#{args[:id]}.xml") if !args.nil? && !args[:id].nil?
+      uri.gsub!(/.xml/, ".xml?#{args[:query].to_query}") if !args.nil? && !args[:query].nil?
       begin
         response = RestClient.get uri
         doc = Nokogiri::XML.parse(response)
 
         doc.xpath('//'+doc_name(name)).map do |i|
-          Hash.from_xml(i.to_s)[doc_name(name)]
+          Hash.from_xml(i.to_s)[hash_name(name)]
         end
       
       rescue Exception
@@ -48,9 +49,10 @@ class Freshdesk
     method_name = "delete_" + name
 
     define_method method_name do |args|
+      args = args[0] if args.class==Array
       uri = mapping(name)
-      raise StandardError, "An ID is required to delete" if args.size.eql? 0
-      uri.gsub!(/.xml/, "/#{args}.xml")
+      raise StandardError, "An ID is required to delete" if args.nil? || args[:id].nil?
+      uri.gsub!(/.xml/, "/#{args[:id]}.xml")
       RestClient.delete uri
     end
   end
@@ -65,7 +67,8 @@ class Freshdesk
     method_name = "post_" + name
     
     define_method method_name do |args|
-      raise StandardError, "Arguments are required to modify data" if args.size.eql? 0
+      args = args[0] if args.class==Array
+
       uri = mapping(name)
       builder = Nokogiri::XML::Builder.new do |xml|
         xml.send(doc_name(name)) {
@@ -78,7 +81,7 @@ class Freshdesk
       begin 
         response = RestClient.post uri, builder.to_xml, :content_type => "text/xml"
         doc = Nokogiri::XML.parse(response)
-        Hash.from_xml(response)[doc_name(name)]
+        Hash.from_xml(response)[hash_name(name)]
 
       rescue RestClient::UnprocessableEntity
         raise AlreadyExistedError, "Entry already existed"
@@ -105,8 +108,8 @@ class Freshdesk
     method_name = "put_" + name
     
     define_method method_name do |args|
-      raise StandardError, "Arguments are required to modify data" if args.size.eql? 0
-      raise StandardError, "id is required to modify data" if args[:id].nil?
+      args = args[0] if args.class==Array
+      raise StandardError, "id is required to modify data"  if args.nil? || args[:id].nil?
       uri = mapping(name)
       
       builder = Nokogiri::XML::Builder.new do |xml|
@@ -135,7 +138,7 @@ class Freshdesk
     end
   end
   
-  [:tickets, :ticket_fields, :users, :forums, :solutions, :companies].each do |a|
+  [:user_tickets, :tickets, :ticket_fields, :users, :forums, :solutions, :companies].each do |a|
     define_get a
     define_post a  
     define_delete a
@@ -153,6 +156,7 @@ class Freshdesk
   def mapping(method_name)
     path = case method_name
       when "tickets" then File.join(@base_url, "helpdesk/tickets.xml")
+      when "user_tickets" then File.join(@base_url, "helpdesk/tickets/user_ticket.xml")
       when "ticket_fields" then File.join( @base_url, "ticket_fields.xml")
       when "users" then File.join(@base_url, "contacts.xml")
       when "forums" then File.join(@base_url, "categories.xml")
@@ -164,11 +168,22 @@ class Freshdesk
   # match with the root name of xml document that freskdesk uses
   def doc_name(name)
     doc = case name 
-      when "tickets" then "helpdesk_ticket"
+      when "user_tickets" then "helpdesk-ticket"
+      when "tickets" then "helpdesk-ticket"
       when "ticket_fields" then "helpdesk-ticket-fields"
       when "users" then "user"
       when "companies" then "customer"
       else raise StandardError, "No root object for this call"
     end
   end
+  # match with the name with the hash name
+  def hash_name(name)
+    doc = case name 
+      when "user_tickets" then "helpdesk_ticket"
+      when "tickets" then "helpdesk_ticket"
+      when "ticket_fields" then "helpdesk_ticket_fields"
+      else doc_name(name)
+    end
+  end
 end
+
