@@ -29,9 +29,7 @@ class Freshdesk
       uri.gsub!(/.xml/, "/#{args[0]}.xml") if args.size > 0
 
       begin
-        puts uri
         response = RestClient.get uri
-        puts response
         doc = Nokogiri::XML.parse(response)
 
         doc.xpath('//'+doc_name(name)).map do |i|
@@ -78,9 +76,7 @@ class Freshdesk
       end
 
       begin 
-        puts uri
         response = RestClient.post uri, builder.to_xml, :content_type => "text/xml"
-        puts response
         doc = Nokogiri::XML.parse(response)
         Hash.from_xml(response)[doc_name(name)]
 
@@ -123,9 +119,7 @@ class Freshdesk
 
       begin 
         uri.gsub!(/.xml/, "/#{args[:id]}.xml")
-        puts uri
         response = RestClient.put uri, builder.to_xml, :content_type => "text/xml"
-        puts response
         
       rescue RestClient::InternalServerError
         raise ConnectionError, "Connection to the server failed. Please check hostname"
