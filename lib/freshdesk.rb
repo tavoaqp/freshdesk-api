@@ -99,7 +99,6 @@ class Freshdesk
         raise ConnectionError, "Connection to the server failed. Please check username/password"
       
       rescue Exception => e3
-        puts e3
         raise
       end   
        
@@ -118,7 +117,6 @@ class Freshdesk
       args = args[0] if args.class==Array
       raise StandardError, "id is required to modify data"  if args.nil? || args[:id].nil?
       uri = mapping(name)
-      
       builder = Nokogiri::XML::Builder.new do |xml|
         xml.send(doc_name(name)) {
           args.each do |key, value|
@@ -163,7 +161,7 @@ class Freshdesk
   def mapping(method_name)
     path = case method_name
       when "tickets" then File.join(@base_url, "helpdesk/tickets.xml")
-      when "user_tickets" then File.join(@base_url, "helpdesk/tickets/user_ticket.xml")
+      when "user_tickets" then File.join(@base_url, "helpdesk/tickets.xml")
       when "ticket_fields" then File.join( @base_url, "ticket_fields.xml")
       when "users" then File.join(@base_url, "contacts.xml")
       when "forums" then File.join(@base_url, "categories.xml")
