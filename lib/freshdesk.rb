@@ -80,7 +80,7 @@ class Freshdesk
           end
         }
       end
-
+      begin
         response = RestClient.post uri, builder.to_xml, :content_type => "text/xml", :accept => "text/xml"
 
         # RAILS DOESN'T ACCEPT YAML
