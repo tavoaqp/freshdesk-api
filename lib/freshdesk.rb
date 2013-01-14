@@ -31,8 +31,11 @@ class Freshdesk
       uri.gsub!(/.xml/, ".xml?#{args[:query].to_query}") if !args.nil? && !args[:query].nil?
       begin
         response = RestClient.get uri
-        doc = Nokogiri::XML.parse(response)
 
+        # RAILS DOESN'T ACCEPT YAML
+        response.gsub!("type=\"yaml\"","")
+
+        doc = Nokogiri::XML.parse(response)
         doc.xpath('//'+doc_name(name)).map do |i|
           Hash.from_xml(i.to_s)[hash_name(name)]
         end
@@ -78,8 +81,11 @@ class Freshdesk
         }
       end
 
-      begin 
-        response = RestClient.post uri, builder.to_xml, :content_type => "text/xml"
+        response = RestClient.post uri, builder.to_xml, :content_type => "text/xml", :accept => "text/xml"
+
+        # RAILS DOESN'T ACCEPT YAML
+        response.gsub!("type=\"yaml\"","")
+
         doc = Nokogiri::XML.parse(response)
         Hash.from_xml(response)[hash_name(name)]
 
@@ -93,6 +99,7 @@ class Freshdesk
         raise ConnectionError, "Connection to the server failed. Please check username/password"
       
       rescue Exception => e3
+        puts e3
         raise
       end   
        
